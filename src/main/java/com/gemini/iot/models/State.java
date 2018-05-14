@@ -8,6 +8,6 @@ import java.util.List;
 @Data
 public class State {
      List<List<Object>> data;
-     List<List<Object>> action;
+     List<List<String>> action;
 
 }

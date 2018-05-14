@@ -9,7 +9,7 @@ import javax.persistence.*;
 import java.util.UUID;
 
 @Entity
-@Table(name = "sensors")
+@Table(name = "devices")
 @Data
 public class Device {
     @Id

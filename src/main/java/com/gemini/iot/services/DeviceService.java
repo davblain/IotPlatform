@@ -1,8 +1,6 @@
 package com.gemini.iot.services;
 
-import com.gemini.iot.dto.DeviceDefinitionDto;
-import com.gemini.iot.dto.DeviceDto;
-import com.gemini.iot.dto.MeasurementData;
+import com.gemini.iot.dto.*;
 import com.gemini.iot.exceptions.*;
 import com.gemini.iot.models.Capability;
 import com.gemini.iot.models.Device;
@@ -47,6 +45,9 @@ public class DeviceService {
     MeasurementDao measurementDao;
     @Autowired
     GroupDao groupDao;
+    @Autowired
+    ActionDao actionDao;
+
     @Transactional
    public  DeviceDefinition registerNewDeviceDefinition(DeviceDefinitionDto definitionDto) {
        List<MeasurementDefinition> measurementDefinitions = definitionDto.getMeasuresDefinitions().stream()
@@ -89,6 +90,34 @@ public class DeviceService {
                 .orElseThrow(() -> new DeviceNotFoundException(deviceUuid.toString()));
     }
 
+    public List<ActionData> getActionDataOfDevice(UUID deviceUuid, Long from, Long to, Long count) {
+        return Optional.ofNullable(deviceDao.findOne(deviceUuid)).
+                map(d -> actionDao.selectActionData(d,from,to,count))
+                .orElseThrow(() -> new DeviceNotFoundException(deviceUuid.toString()));
+    }
+
+    @Transactional
+    public void writeMeasurementData(Action action) {
+        boolean isDefined = Optional.ofNullable(deviceDao.findOne(UUID.fromString(action.getUuid())))
+                .map( device -> device.getDeviceDefinition().getActionsDefinitions().stream()
+                        .map(ActionDefinition::getName).anyMatch( name -> name.equals(action.getName())))
+                .orElse(false);
+        if (isDefined) {
+            actionDao.writeActionData(action);
+        }
+    }
+
+    @Transactional
+    public void writeMeasurementData(ChangeDataRequest measuredData) {
+       boolean isDefined = Optional.ofNullable(deviceDao.findOne(UUID.fromString(measuredData.getUuid())))
+                .map( device -> device.getDeviceDefinition().getMeasuresDefinitions().stream()
+                        .map(MeasurementDefinition::getName).anyMatch( name -> name.equals(measuredData.getMeasurement())))
+                .orElse(false);
+       if (isDefined) {
+           measurementDao.writeMeasurementData(measuredData);
+       }
+    }
+
     @Transactional
     public boolean checkForOwner(String username,UUID uuid) {
         return userService.getUserByUsername(username).getGroups().stream()
@@ -121,6 +150,7 @@ public class DeviceService {
 
     private State createStateForDevice(Device device) {
         State deviceState = new State();
+        deviceState.setAction(actionDao.findLastActionData(device));
         deviceState.setData( measurementDao.findLastMeasurementData(device));
         return  deviceState;
     }

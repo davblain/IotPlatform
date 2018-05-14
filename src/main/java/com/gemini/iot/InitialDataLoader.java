@@ -1,16 +1,19 @@
 package com.gemini.iot;
 
 
+import com.gemini.iot.models.Device;
 import com.gemini.iot.models.Group;
 import com.gemini.iot.models.Role;
 import com.gemini.iot.models.User;
 import com.gemini.iot.models.definitions.MeasurementDefinition;
 import com.gemini.iot.models.definitions.DeviceDefinition;
 import com.gemini.iot.repository.*;
+import org.influxdb.dto.Point;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.data.influxdb.InfluxDBTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,13 +39,14 @@ public class InitialDataLoader implements
     UserDao userDao;
     @Autowired
     private PasswordEncoder passwordEncoder;
-
+    @Autowired
+    private InfluxDBTemplate<Point> influxDBTemplate;
     @Override
     @Transactional
     public void onApplicationEvent(ContextRefreshedEvent event) {
 
         if (!alreadySetup.equals("true")) {
-
+            influxDBTemplate.createDatabase();
             createRoleIfNotFound("ROLE_ADMIN");
             createRoleIfNotFound("ROLE_USER");
             Role userRole = roleDao.findByName("ROLE_USER");
@@ -71,7 +75,10 @@ public class InitialDataLoader implements
             deviceDefinition.setName("temperatureTestSensor");
             deviceDefinition.setMeasuresDefinitions(Arrays.asList(temperatureDefinition));
             deviceDefinition = deviceDefinitionDao.save(deviceDefinition);
-            System.out.println("Test1");
+            Device device = new Device();
+            device.setDeviceDefinition(deviceDefinition);
+            device = deviceDao.save(device);
+            System.out.println(device.getUuid());
             alreadySetup = "true";
         }
 

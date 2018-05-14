@@ -3,6 +3,8 @@ package com.gemini.iot.models.definitions;
 import com.gemini.iot.models.definitions.ActionDefinition;
 import com.gemini.iot.models.definitions.MeasurementDefinition;
 import lombok.Data;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import javax.persistence.*;
 import java.util.List;
@@ -18,7 +20,8 @@ public class DeviceDefinition {
     @Column
     String name;
 
-    @ManyToMany(cascade = {CascadeType.ALL})
+    @ManyToMany(cascade = {CascadeType.ALL},fetch = FetchType.EAGER)
+    @Fetch(value = FetchMode.SUBSELECT)
     @JoinTable(
             name = "device_measurement_definitions",
             joinColumns = @JoinColumn(
@@ -27,7 +30,8 @@ public class DeviceDefinition {
                     name = "measurement_def_id"))
     List<MeasurementDefinition> measuresDefinitions;
 
-    @ManyToMany(cascade = {CascadeType.ALL})
+    @ManyToMany(cascade = {CascadeType.ALL},fetch = FetchType.EAGER)
+    @Fetch(value = FetchMode.SUBSELECT)
     @JoinTable(
             name = "device_action_definitions",
             joinColumns = @JoinColumn(

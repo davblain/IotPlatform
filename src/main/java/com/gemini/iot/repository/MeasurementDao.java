@@ -1,5 +1,6 @@
 package com.gemini.iot.repository;
 
+import com.gemini.iot.dto.ChangeDataRequest;
 import com.gemini.iot.dto.MeasurementData;
 import com.gemini.iot.models.Device;
 import com.gemini.iot.models.definitions.MeasurementDefinition;
@@ -11,10 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.influxdb.InfluxDBTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -24,42 +22,58 @@ public class MeasurementDao {
     @Autowired
     InfluxDBTemplate<Point> influxDbTemplate;
 
+    static public String measurePostfix="_data";
    public List<List<Object>> findLastMeasurementData(Device device) {
        String deviceUUID = device.getUuid().toString();
        String measures = device.getDeviceDefinition().getMeasuresDefinitions().stream()
                .map(MeasurementDefinition::getName)
+               .map(name -> "\""+name+measurePostfix+"\"")
                .collect(Collectors.joining(","));
-       String statement = "SELECT LAST(*) from " + measures + " where \"device_uuid\"= " + "'" + deviceUUID + "'";
+       String statement = "SELECT LAST(*) from " + measures + " where \"device_uuid\"= " + "'" + deviceUUID + "'" ;
        Query query = new Query(statement, influxDbTemplate.getDatabase());
        QueryResult result = influxDbTemplate.query(query, TimeUnit.MILLISECONDS);
-       List<List<Object>> values = result.getResults().stream().findAny().map(res -> res.getSeries().stream()
-               .sorted(Comparator.comparing(QueryResult.Series::getName))
-               .map(series -> series.getValues().get(0).stream()
-                       .skip(1)
-                       .filter( Objects::nonNull)
-                       .collect(Collectors.toList())
-               )
+       List<List<Object>> values = result.getResults().stream().findAny().flatMap(res -> Optional.ofNullable(res.getSeries()))
+               .map(series -> series.stream()
+                       .sorted(Comparator.comparing(QueryResult.Series::getName))
+                       .map(serie -> serie.getValues().get(0).stream()
+                               .skip(1)
+                               .filter(Objects::nonNull)
+                               .collect(Collectors.toList()))
                .collect(Collectors.toList())).orElse(new ArrayList<>());
        return values;
    }
+
+   public void writeMeasurementData(ChangeDataRequest measuredData) {
+       Point.Builder pointBuilder = Point.measurement(measuredData.getMeasurement()+measurePostfix);
+       for (int i = 0; i < measuredData.getData().size() ; i++) {
+           pointBuilder.addField("field"+i,measuredData.getData().get(i));
+       }
+       pointBuilder.tag("device_uuid",measuredData.getUuid());
+       if (measuredData.getData().size()!= 0) {
+           influxDbTemplate.write(pointBuilder.build());
+       }
+   }
+
    //TODO NEED REFACTOR PLEASE
    public  List<MeasurementData> selectMeasurementData(Device device,Long from, Long to, Long count ) {
        String deviceUUID = device.getUuid().toString();
 
        String measures = device.getDeviceDefinition().getMeasuresDefinitions().stream()
                .map(MeasurementDefinition::getName)
+               .map(name -> "\""+name+measurePostfix+"\"")
                .collect(Collectors.joining(","));
 
        Integer countOfValues = device.getDeviceDefinition().getMeasuresDefinitions().stream().
                map(MeasurementDefinition::getCountOfMeasure).max(Integer::compareTo).orElse(0);
 
-       StringBuilder statement = new StringBuilder().append("SELECT MEAN(/value/)");
+       StringBuilder statement = new StringBuilder().append("SELECT MEAN(/field/) ");
        statement.append("from ")
                .append(measures)
                .append(" where \"device_uuid\"= ")
                .append("'")
                .append(deviceUUID)
                .append("'");
+
        if (from != null) {
            statement.append(" AND ")
                    .append(" time ")
@@ -76,7 +90,7 @@ public class MeasurementDao {
                    .append(to)
                    .append("'");
        }
-       statement.append(" GROUP by TIME(10s)");
+       statement.append(" GROUP by TIME(10s) FILL(previous)");
        Query query = new Query(statement.toString(), influxDbTemplate.getDatabase());
        QueryResult result = influxDbTemplate.query(query , TimeUnit.SECONDS);
 
@@ -96,28 +110,9 @@ public class MeasurementDao {
                measurementDataList.add(measurementData);
            }
            return measurementDataList;
-       }
+       }).orElse(new ArrayList<>());
 
 
-       ).orElse(new ArrayList<>());
-
-
-
-
-
-           //    res -> res.getSeries().stream()
-           //            .reduce((measure1,measure2) -> {
-
-                   //     List<Object> values1 = measure2.getValues().stream().skip(1).collect(Collectors.toList());
-                    //    List<Object> values2 = measure1.getValues().stream().skip(1).collect(Collectors.toList());
-                    //    QueryResult.Series series = new QueryResult.Series();
-                    //    measure1.setValues(new ArrayList<>());
-                    //    series.setValues();
-
-               //         return
-               //     })
-       //        .sorted(Comparator.comparing(QueryResult.Series::getName))
-        //       .map( series ->)
 
    }
 
