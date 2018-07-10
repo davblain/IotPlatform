@@ -25,6 +25,8 @@ public class User implements Serializable,UserDetails{
     @JsonIgnore
     private String password;
 
+    @Column(name = "email")
+    private String email;
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "users_groups",
@@ -89,6 +91,14 @@ public class User implements Serializable,UserDetails{
 
     public void setGroups(List<Group> groups) {
         this.groups = groups;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     @JsonIgnore

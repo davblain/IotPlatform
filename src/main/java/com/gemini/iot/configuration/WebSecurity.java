@@ -48,7 +48,7 @@ public class WebSecurity extends WebSecurityConfigurerAdapter {
                 .and()
              .authorizeRequests()
                 .antMatchers(HttpMethod.OPTIONS,"/**").permitAll()
-                .antMatchers(SIGN_UP_URL,SIGN_IN_URL+"/**",PUBLISH_URL+"/**","/index.html","/js/**","/ws/**","/h2/**").permitAll()
+                .antMatchers(SIGN_UP_URL,SIGN_IN_URL+"/**","/index.html","/js/**","/ws/**","/h2/**").permitAll()
                 .anyRequest().authenticated();
 
         http.addFilterBefore(authenticationTokenFilterBean(),UsernamePasswordAuthenticationFilter.class);

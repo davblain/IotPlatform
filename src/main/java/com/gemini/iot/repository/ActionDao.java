@@ -2,7 +2,6 @@ package com.gemini.iot.repository;
 
 import com.gemini.iot.dto.Action;
 import com.gemini.iot.dto.ActionData;
-import com.gemini.iot.dto.ChangeDataRequest;
 import com.gemini.iot.models.Device;
 import com.gemini.iot.models.definitions.ActionDefinition;
 import org.influxdb.dto.Point;
@@ -24,23 +23,27 @@ public class ActionDao {
 
     public List<List<String>> findLastActionData(Device device) {
         String deviceUUID = device.getUuid().toString();
+        if (device.getDeviceDefinition().getActionsDefinitions().isEmpty())
+            return new ArrayList<>();
         String actions = device.getDeviceDefinition().getActionsDefinitions().stream()
-                .map(ActionDefinition::getName)
-                .map(name -> "\""+name+actionPostfix+"\"")
-                .collect(Collectors.joining(","));
-        String statement = "SELECT LAST(*) from " + actions + " where \"device_uuid\"= " + "'" + deviceUUID + "'" ;
+                    .map(ActionDefinition::getName)
+                    .map(name -> "\"" + name + actionPostfix + "\"")
+                    .collect(Collectors.joining(","));
+
+        String statement = "SELECT LAST(*) from " + actions + " where \"device_uuid\"= " + "'" + deviceUUID + "'";
         Query query = new Query(statement, influxDbTemplate.getDatabase());
         QueryResult result = influxDbTemplate.query(query, TimeUnit.MILLISECONDS);
         List<List<String>> values = result.getResults().stream().findAny().flatMap(res -> Optional.ofNullable(res.getSeries()))
-                .map(series -> series.stream()
-                        .sorted(Comparator.comparing(QueryResult.Series::getName))
-                        .map(serie -> serie.getValues().get(0).stream()
-                                .skip(1)
-                                .filter(Objects::nonNull)
-                                .map(Object::toString)
-                                .collect(Collectors.toList()))
-                        .collect(Collectors.toList())).orElse(new ArrayList<>());
+                    .map(series -> series.stream()
+                            .sorted(Comparator.comparing(QueryResult.Series::getName))
+                            .map(serie -> serie.getValues().get(0).stream()
+                                    .skip(1)
+                                    .filter(Objects::nonNull)
+                                    .map(Object::toString)
+                                    .collect(Collectors.toList()))
+                            .collect(Collectors.toList())).orElse(new ArrayList<>());
         return values;
+
     }
 
 
@@ -54,7 +57,10 @@ public class ActionDao {
             influxDbTemplate.write(pointBuilder.build());
         }
     }
+
     public  List<ActionData> selectActionData(Device device, Long from, Long to, Long count ) {
+        if (device.getDeviceDefinition().getActionsDefinitions().isEmpty())
+            return new ArrayList<>();
         String deviceUUID = device.getUuid().toString();
 
         String actions = device.getDeviceDefinition().getActionsDefinitions().stream()
@@ -63,7 +69,7 @@ public class ActionDao {
                 .collect(Collectors.joining(","));
 
         Integer countOfValues = device.getDeviceDefinition().getActionsDefinitions().stream().
-                map(ActionDefinition::getCountOfValue).max(Integer::compareTo).orElse(0);
+                map(ActionDefinition::getDimension).max(Integer::compareTo).orElse(0);
 
         StringBuilder statement = new StringBuilder().append("SELECT MODE(*) ");
         statement.append("from ")
@@ -89,11 +95,18 @@ public class ActionDao {
                     .append(to)
                     .append("'");
         }
-        statement.append(" GROUP by TIME(10s) FILL(previous)");
+        if (count == null) {
+            count = 10L;
+
+        }
+        statement.append(" GROUP by TIME(10s) FILL(previous) ")
+                .append("LIMIT ")
+                .append(count);
         Query query = new Query(statement.toString(), influxDbTemplate.getDatabase());
         QueryResult result = influxDbTemplate.query(query , TimeUnit.SECONDS);
 
         return result.getResults().stream().findAny().map( res -> {
+            if(res.getSeries().isEmpty())  return  new ArrayList<ActionData>();
             QueryResult.Series mainSeries = res.getSeries().get(0);
             List<ActionData> actionDataList = new ArrayList<>();
             for (int j = 0; j < res.getSeries().get(0).getValues().size() ; j++) {
@@ -110,9 +123,6 @@ public class ActionDao {
             }
             return actionDataList;
         }).orElse(new ArrayList<>());
-
-
-
     }
 
 }

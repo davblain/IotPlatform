@@ -39,14 +39,14 @@ public class UserController {
         this.bCryptPasswordEncoder = e;
 
     }
-    @PostMapping("sign_up")
+    @PostMapping("user")
     @ResponseBody
     User registerUser(@RequestBody UserRegisterRequest user) throws AlreadyExistException,DeviceNotFoundException {
         user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
         return  userService.registerUser(user);
     }
 
-    @PostMapping("sign_in")
+    @PostMapping("authorization")
     @ResponseBody
     String sign_in(@RequestBody UserRegisterRequest user) {
         Authentication authentication = this.authenticationManager.authenticate(
@@ -58,7 +58,8 @@ public class UserController {
         UserDetails userDetails = this.userService.loadUserByUsername(user.getUsername());
         return this.tokenUtils.generateToken(userDetails);
     }
-    @PutMapping("change_password")
+    
+    @PutMapping("user/password")
     @ResponseBody
     String changePassword(@RequestBody ChangePasswordRequest passwordDto, Authentication authentication)  throws WrongPasswordException {
         return userService.changePassword(authentication.getName(),passwordDto.getOldPassword(),passwordDto.getNewPassword());

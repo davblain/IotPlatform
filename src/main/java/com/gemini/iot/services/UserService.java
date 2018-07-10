@@ -20,8 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService implements UserDetailsService{
@@ -65,10 +67,11 @@ public class UserService implements UserDetailsService{
                 .orElseThrow(()-> new UserNotFoundException(uuid.toString()));
     }
 
-    public GroupDto getAdministratedGroup(String username) {
+    public List<GroupDto> getAdministratedGroup(String username) {
         return Optional.ofNullable( userDao.findUserByUsername(username))
-                .flatMap(u -> Optional.ofNullable(groupDao.findByAdmin(u)))
-                .map(g -> modelMapper.map(g,GroupDto.class))
+                .map(u -> groupDao.findByAdmin(u).stream()
+                        .map(g -> modelMapper.map(g,GroupDto.class))
+                                .collect(Collectors.toList()))
                 .orElseThrow(()-> new UserNotFoundException(username));
     }
 

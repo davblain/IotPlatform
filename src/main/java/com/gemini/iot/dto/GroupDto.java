@@ -13,4 +13,5 @@ public class GroupDto {
     String admin;
     String name;
     List<String> devices;
+    List<String> members;
 }

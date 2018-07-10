@@ -30,6 +30,7 @@ public class WebSocketOutboundChannel implements OutboundChannel {
                 .flatMap(device -> Optional.ofNullable(device.getOwner()))
                 .flatMap( owner -> Optional.ofNullable(owner.getMembers()))
                 .ifPresent( members -> members.forEach(m -> simpMessagingTemplate.convertAndSendToUser(m.getUsername(),"/queue/private",event)));
+        simpMessagingTemplate.convertAndSend("device/"+event.getUuid(),event);
     }
 
 

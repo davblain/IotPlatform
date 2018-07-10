@@ -47,17 +47,26 @@ public class GroupController {
         }
         else  throw  new AccessDeniedException("You have not permissions for get group");
     }
-    @PostMapping("group/member")
+
+
+    @PostMapping("group/{id}/member")
     @ResponseBody
-    String addMember(Authentication authentication, @RequestParam String username) throws UserNotFoundException {
-       GroupDto group =  userService.getAdministratedGroup(authentication.getName());
+    String addMember(@PathVariable(name = "id") String uuid,Authentication authentication, @RequestParam String username) throws UserNotFoundException {
+       List<GroupDto> groups =  userService.getAdministratedGroup(authentication.getName());
+       GroupDto group = groups.stream()
+               .filter(groupDto ->  groupDto.getUuid().toString().equals(uuid))
+               .findFirst().orElseThrow(() -> new AccessDeniedException("You have not permissions for add to group"));
        groupService.addMember(group.getUuid(),username);
        return "SUCCESS";
     }
-    @DeleteMapping("group/member")
+
+    @DeleteMapping("group/{id}/member")
     @ResponseBody
-    String deleteMember(Authentication authentication, @RequestParam String username) throws UserNotFoundException {
-        GroupDto group =  userService.getAdministratedGroup(authentication.getName());
+    String deleteMember(@PathVariable(name = "id") String uuid,Authentication authentication, @RequestParam String username) throws UserNotFoundException {
+        List<GroupDto> groups =  userService.getAdministratedGroup(authentication.getName());
+        GroupDto group = groups.stream()
+                .filter(groupDto ->  groupDto.getUuid().toString().equals(uuid))
+                .findFirst().orElseThrow(() -> new AccessDeniedException("You have not permissions for delete from group"));
         groupService.deleteMember(group.getUuid(),username);
         return "SUCCESS";
     }

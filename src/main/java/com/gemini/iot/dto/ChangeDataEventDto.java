@@ -1,8 +1,12 @@
 package com.gemini.iot.dto;
 
+import lombok.Data;
+
 import java.util.List;
 
-public class ChangeDataRequest {
+@Data
+public class ChangeDataEventDto {
+    String uuid;
     String measurement;
     List<Double> data;
 }

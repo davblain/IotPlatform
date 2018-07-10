@@ -41,6 +41,8 @@ public class InitialDataLoader implements
     private PasswordEncoder passwordEncoder;
     @Autowired
     private InfluxDBTemplate<Point> influxDBTemplate;
+
+
     @Override
     @Transactional
     public void onApplicationEvent(ContextRefreshedEvent event) {
@@ -69,16 +71,31 @@ public class InitialDataLoader implements
             userDao.save(user2);
             MeasurementDefinition temperatureDefinition = new MeasurementDefinition();
             temperatureDefinition.setName("temperature");
-            temperatureDefinition.setCountOfMeasure(1);
+            temperatureDefinition.setDimension(1);
             temperatureDefinition = measurementDefinitionDao.save(temperatureDefinition);
+            MeasurementDefinition humidityDefinition = new MeasurementDefinition();
+            humidityDefinition.setName("humidity");
+            humidityDefinition.setDimension(1);
+            humidityDefinition = measurementDefinitionDao.save(humidityDefinition);
             DeviceDefinition deviceDefinition = new DeviceDefinition();
             deviceDefinition.setName("temperatureTestSensor");
-            deviceDefinition.setMeasuresDefinitions(Arrays.asList(temperatureDefinition));
+            deviceDefinition.setMeasuresDefinitions(Arrays.asList(temperatureDefinition,humidityDefinition));
             deviceDefinition = deviceDefinitionDao.save(deviceDefinition);
             Device device = new Device();
             device.setDeviceDefinition(deviceDefinition);
             device = deviceDao.save(device);
             System.out.println(device.getUuid());
+            //Facts facts = new Facts();
+            //facts.put("time",System.currentTimeMillis());
+
+            //Condition condition = new Condition(ConditionAttitude.EQUAL,"time",System.currentTimeMillis());
+           // Action action = new Action();
+           // action.setName("switch_on/of");
+           // action.setUuid(device.getUuid().toString());
+           // action.getData().add("on");
+           // Rule rule = new Rule("and",Arrays.asList(condition),Arrays.asList(action));
+           // Rule test = ruleDao.insert(rule);
+
             alreadySetup = "true";
         }
 

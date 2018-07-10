@@ -20,6 +20,7 @@ import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +36,10 @@ public class GroupService {
         this.userDao = userDao;
         this.modelMapper = modelMapper;
     }
+
+
+
+
     @Transactional
     public GroupDto createGroup(User user, String name) {
         return user.getGroups().stream()

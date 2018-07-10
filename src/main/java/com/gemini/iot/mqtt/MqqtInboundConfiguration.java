@@ -7,8 +7,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.core.MessageProducer;
+import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
 import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
 import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
+import org.springframework.integration.mqtt.support.MqttHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
@@ -29,8 +31,9 @@ public class MqqtInboundConfiguration {
     @Bean
     public MessageProducer inbound() {
         MqttPahoMessageDrivenChannelAdapter adapter =
-                new MqttPahoMessageDrivenChannelAdapter("tcp://localhost:1883", "testClient",
-                        "data/#");
+                new MqttPahoMessageDrivenChannelAdapter( "test2",appContext.getBean(MqttPahoClientFactory.class),
+                        "device/+/data");
+
         adapter.setCompletionTimeout(5000);
         adapter.setConverter(new DefaultPahoMessageConverter());
         adapter.setQos(1);
@@ -47,7 +50,7 @@ public class MqqtInboundConfiguration {
             @Override
             public void handleMessage(Message<?> message) throws MessagingException {
                 try {
-                    mqttController.handleMessage(message.getHeaders().get("mqtt_topic").toString(),message.getPayload().toString());
+                    mqttController.handleMessage(message.getHeaders().get(MqttHeaders.TOPIC).toString(),message.getPayload().toString());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

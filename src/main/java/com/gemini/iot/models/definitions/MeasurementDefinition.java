@@ -15,7 +15,7 @@ public class MeasurementDefinition {
     @Id
     String name;
     @Column
-    Integer countOfMeasure;
+    Integer dimension;
     @Column
     String description;
 }

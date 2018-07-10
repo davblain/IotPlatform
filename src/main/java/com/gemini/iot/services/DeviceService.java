@@ -10,20 +10,16 @@ import com.gemini.iot.models.definitions.ActionDefinition;
 import com.gemini.iot.models.definitions.DeviceDefinition;
 import com.gemini.iot.models.definitions.MeasurementDefinition;
 import com.gemini.iot.repository.*;
-import org.influxdb.dto.Point;
-import org.influxdb.dto.Query;
-import org.influxdb.dto.QueryResult;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.influxdb.InfluxDBTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sun.management.Sensor;
 
 
 import javax.validation.constraints.NotNull;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,6 +44,10 @@ public class DeviceService {
     @Autowired
     ActionDao actionDao;
 
+    @Scheduled
+    public void  updateData() {
+
+    }
     @Transactional
    public  DeviceDefinition registerNewDeviceDefinition(DeviceDefinitionDto definitionDto) {
        List<MeasurementDefinition> measurementDefinitions = definitionDto.getMeasuresDefinitions().stream()
@@ -84,9 +84,9 @@ public class DeviceService {
                     .collect(Collectors.toList());
     }
 
-    public List<MeasurementData> getMeasurementDataOfDevice(UUID deviceUuid,Long from, Long to, Long count) {
+    public List<MeasurementData> getMeasurementDataOfDevice(UUID deviceUuid,Long from, Long to, Long count,Long groupInSeconds) {
         return Optional.ofNullable(deviceDao.findOne(deviceUuid)).
-                map(d -> measurementDao.selectMeasurementData(d,from,to,count))
+                map(d -> measurementDao.selectMeasurementData(d,from,to,count,groupInSeconds))
                 .orElseThrow(() -> new DeviceNotFoundException(deviceUuid.toString()));
     }
 
@@ -97,7 +97,7 @@ public class DeviceService {
     }
 
     @Transactional
-    public void writeMeasurementData(Action action) {
+    public void writeActionData(Action action) {
         boolean isDefined = Optional.ofNullable(deviceDao.findOne(UUID.fromString(action.getUuid())))
                 .map( device -> device.getDeviceDefinition().getActionsDefinitions().stream()
                         .map(ActionDefinition::getName).anyMatch( name -> name.equals(action.getName())))
@@ -108,7 +108,7 @@ public class DeviceService {
     }
 
     @Transactional
-    public void writeMeasurementData(ChangeDataRequest measuredData) {
+    public void writeMeasurementData(ChangeDataEventDto measuredData) {
        boolean isDefined = Optional.ofNullable(deviceDao.findOne(UUID.fromString(measuredData.getUuid())))
                 .map( device -> device.getDeviceDefinition().getMeasuresDefinitions().stream()
                         .map(MeasurementDefinition::getName).anyMatch( name -> name.equals(measuredData.getMeasurement())))

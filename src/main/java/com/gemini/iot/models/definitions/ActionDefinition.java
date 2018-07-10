@@ -14,5 +14,5 @@ public class ActionDefinition {
     @Id
     String name;
     @Column
-    Integer countOfValue;
+    Integer dimension;
 }
